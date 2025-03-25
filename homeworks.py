@@ -12,12 +12,15 @@ def get_homework_folders(base_dir):
     homework_folders = []
     for root, dirs, _ in os.walk(base_dir):
         for dir_name in dirs:
-            # 匹配 HW_04-06 或 HW_04-06_1 形式
-            match = re.match(r'HW_(\d{2}-\d{2})(?:_\d+)?$', dir_name)
+            # 匹配 HW_2025-03-25 或 HW_2025-03-25_1 形式
+            match = re.match(r'HW_(\d{4}-\d{2}-\d{2})(?:_\d+)?$', dir_name)
             if match:
-                # 解析日期
+                # 解析日期，明确指定完整日期格式
+                date_str = match.group(1)
+                date = datetime.strptime(date_str, "%Y-%m-%d")  # 解析为 YYYY-MM-DD 格式
+
                 homework_folders.append({
-                    'date': datetime.strptime(match.group(1), "%m-%d"),  # 只解析 MM-DD
+                    'date': date,
                     'folder': os.path.relpath(os.path.join(root, dir_name), base_dir)  # 计算相对路径
                 })
     
@@ -25,11 +28,6 @@ def get_homework_folders(base_dir):
 
 # 按日期排序并输出
 def sort_homeworks(homework_folders):
-    # 假设作业都在今年（2025年）
-    current_year = datetime.now().year
-    for hw in homework_folders:
-        hw['date'] = hw['date'].replace(year=current_year)  # 补充年份
-
     sorted_homeworks = sorted(homework_folders, key=lambda x: x['date'])
 
     # 输出排序结果
