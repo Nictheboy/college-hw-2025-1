@@ -15,13 +15,18 @@ def get_homework_folders(base_dir):
             # 匹配 HW_2025-03-25 或 HW_2025-03-25_1 形式
             match = re.match(r'HW_(\d{4}-\d{2}-\d{2})(?:_\d+)?$', dir_name)
             if match:
+                # 检查是否存在 done 文件
+                homework_path = os.path.join(root, dir_name)
+                if os.path.exists(os.path.join(homework_path, 'done')):
+                    continue
+                    
                 # 解析日期，明确指定完整日期格式
                 date_str = match.group(1)
                 date = datetime.strptime(date_str, "%Y-%m-%d")  # 解析为 YYYY-MM-DD 格式
 
                 homework_folders.append({
                     'date': date,
-                    'folder': os.path.relpath(os.path.join(root, dir_name), base_dir)  # 计算相对路径
+                    'folder': os.path.relpath(homework_path, base_dir)  # 计算相对路径
                 })
     
     return homework_folders
