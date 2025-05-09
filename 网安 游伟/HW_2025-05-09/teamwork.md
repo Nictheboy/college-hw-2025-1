@@ -11,10 +11,10 @@
 
 ## 分享链接
 
-<https://pan.ruc.edu.cn/link/AA402229CE7408428DB52D13308808B111>
+<https://pan.ruc.edu.cn/link/AAC8212484E7BD4C06BB0F3843FEF86A5B>
 
-Name: AnonymousBoard.zip
+Name: one-wall.zip
 
-Expires: 2025-06-07 23:18
+Expires: 2025-06-07 11:34
 
-Pickup Code: BSca
+Pickup Code: ewON
